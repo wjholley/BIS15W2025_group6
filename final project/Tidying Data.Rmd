@@ -41,8 +41,6 @@ genomics <- read_csv("data/landscapegenetics/TF_PS_pipits.csv") %>%
          "TLR4_4.C_copies" = "TLR4_4.C") %>% 
   clean_names()
 names(genomics) <- sub('^x', "", names(genomics)) #substitute any col names beginning with "x" with a blank string
-genomics_tf_ps <- merge(tf_ps, genomics, by = "sample")
-genomics <- read.csv("data/landscapegenetics/TF_PS_pipits.csv") %>% clean_names()
 genomics_tf_ps <- left_join(tf_ps, genomics, by = "sample")
 ```
 

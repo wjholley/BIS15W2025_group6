@@ -16,127 +16,34 @@ library(tidyverse)
 library(janitor)
 ```
 
-## Loading Data
 
+## Loading the data
 ```{r}
-tf <- read.csv("data/landscapegenetics/TF_pipits_2011.csv") %>% clean_names() #16 var
-ps <- read.csv("data/landscapegenetics/PS_pipits_2016.csv") %>% clean_names() #15 var
+genomics_tf_ps <- read.csv("data/landscapegenetics/genomics_tf_ps.csv") %>% clean_names()
+names(genomics_tf_ps)
 ```
-
-## Merging Data
-
 ```{r}
-dim(tf) #checking dimensions
-dim(ps) 
-
-names(tf) #Looking for variable to make them even
-
-tf_1 <- tf %>% select(!autocov1000m) #redefine tf as a different df
-
-merged_df <- merge(tf,ps, all=TRUE) #merge all data frames together
-
-glimpse(merged_df) #cursory glance at df
-```
-
-**So I actually started looking at the data and I have zero idea what any of this means. Like what does "UTM" mean? Anyways, actually reading the data README now. What has BIS15L done to me?**
-
-*Ok so apparently it means "Universal Transverse Mercator zone." I'm not touching that with a 15 km pole.*
-
-No less than 10 minutes later, I decided I might as well attempt to analyze it. Here goes:
-
-```{r}
-merged_df %>% 
-  ggplot(
-    aes(utm, mintemp)
-  )+
-  geom_boxplot()+
-  labs(title = "Min Temp by whatever a UTM is",
-       x = "UTM",
-       y = "Min Temp (C)")
-```
-
-OK now I feel silly because there's only one UTM represented in this dataset. I think. Let me see:
-
-```{r}
-merged_df %>% 
-  summarize(n_utm = n_distinct(utm)) #I was right.
-```
-
-```{r}
-merged_df %>% 
-  group_by(easting, northing) %>% 
-  select(easting, northing, density) %>% 
-  summarize(avg_density = mean(density), .groups='keep')
-```
-
-Outputting the merged df as a csv:
-
-```{r}
-write.csv(merged_df, "data/landscapegenetics/merged_pipits.csv", row.names = FALSE)
-```
-
-Anyways, since that's not the most important thing known to man:
-
-```{r}
-tf_ps <- read.csv("data/landscapegenetics/TF_PS_pipits.csv") %>% clean_names()
-glimpse(tf_ps) #cursory checking
-```
-
-```{r}
-merge_2 <- merge(merged_df, tf_ps, by = "sample")
-merge_2
-```
-
-**General takeaways:**
-
--   Looks like it has a lot of information within the var names themselves. Thank god for pivot.
-
--   Looks actually terrible
-
--   Gotta read the README to figure out why they're using 1,0, and 2...
-
--   Need to redefine `malaria` as Yes/No, TRUE/FALSE, because 0/1 is actual dogwater
-
--   Why there's a whole 'nother dataframe I still gotta figure out
-
--   Is this what happens when you let a biochemist go crazy with a data analysis program?
-
--   Anyways, it looks like some of them are whether or not there's a particular aa in a particular position? Why the 2 though??
-
--   Apparently a significant amount of 0/1 stand for "Presence" or "Absence" which would **usually** be fine, but they're super inconsistent on whether or not they use Y/N or 0/1.
-
--   Sometimes it also means "homozygous" or "heterozygous". Get me out of here.
-
--   Why "0" and "2" **BOTH** mean "homozygous"? Surely the person who analyzed this data thought that was weird.
-
--   OK to be fair to them, it looks like this data might have been taken over the course of 5 years (or a 5 year gap) so like I don't like it but I can deal.
-
--   Chat what is an SNP? Will ask group mates eventually.
-
--   These variable names are so vague. TLR4\_#\_nucleotide? Like is this saying that there's two types of alleles or what
-
--   TLR4_prot\_# means the protein haplotype (note to self--google that)
--   Do we want to change the variables to "Yes/No" or more descriptive terms (homozygous, heterozygous, etc.)
-
-Redefining `malaria`:
-
-```{r}
-tf_ps <- tf_ps %>% 
-  mutate(malaria = if_else(malaria == "1", "Y","N")) 
-#Note to self: actually remember to specify that you want to redefine `malaria`...
-glimpse(tf_ps)
-```
-
-Kid birds that have malaria vs Adult birds that have malaria:
-```{r}
-tf_ps %>% 
-  ggplot(aes(x = age, fill = malaria))+
-  geom_bar(pos = "dodge")+
+genomics_tf_ps %>% 
+  filter(!is.na(malaria)&!is.na(x5239s1_a)&!is.na(x5239s1_t)) %>% 
+  ggplot(aes(malaria))+
+  geom_bar()+
+  facet_grid(x5239s1_a~x5239s1_t)+
   labs(
-    title = "Number of Birds With Malaria by Age Group",
-    x = "Age (Juvenile or Adult)",
-    y = "Number"
+    title = "Chances of Malaria by SNP Allele",
+    x = "Malaria",
   )+
-  theme(plot.title = element_text(size = rel(1.5), hjust=0.5))
+  theme(plot.title = element_text(hjust=0.5))
+
+snp_plot_data <- genomics_tf_ps %>% 
+  filter(!is.na(malaria)&!is.na(x5239s1_a)&!is.na(x5239s1_t)) %>%
+  group_by(malaria, x5239s1_a, x5239s1_t) %>% 
+  summarize(n=n(), .groups = 'keep') %>%
+  group_by(x5239s1_a, x5239s1_t) %>% 
+  mutate(perc = 100*n/sum(n))
+
+snp_plot_data %>% 
+  ggplot(aes(malaria, perc))+
+  geom_col()+
+  facet_grid(x5239s1_a~x5239s1_t)
 ```
 
