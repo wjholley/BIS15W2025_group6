@@ -17,44 +17,30 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r}
-tf <- read.csv("data/landscapegenetics/TF_pipits_2011.csv") %>% clean_names() #16 var
-ps <- read.csv("data/landscapegenetics/PS_pipits_2016.csv") %>% clean_names() #15 var
-genomics <- read.csv("data/landscapegenetics/TF_PS_pipits.csv") %>% clean_names()
-```
-
-```{r}
-dim(tf) #checking dimensions
-dim(ps) 
-
-names(tf) #Looking for variable to make them even
-
-tf_1 <- tf %>% select(!autocov1000m) #redefine tf as a different df
-
-merged_df <- merge(tf,ps, all=TRUE) #merge all data frames together
-
-glimpse(merged_df) #cursory glance at df
-```
-
-```{r}
-genomics
-```
-
-```{r}
-genomics_tf <- merge(tf, genomics, by = "sample")
-```
-
-```{r}
-genomics_tf %>% 
-  filter(sample == "1101")
+tf_ps <- read_csv("data/landscapegenetics/genomics_tf_ps.csv")
 ```
 ```{r}
-tf %>% 
-  filter(sample == "1101")
+tf_ps %>% 
+      group_by(malaria, distpoul_cat) %>% 
+      summarize(n=n(), .groups = 'keep') %>%
+      group_by(distpoul_cat) %>% 
+      mutate(perc = 100*n/sum(n)) %>%
+      filter(malaria == "Y") %>% 
+      ggplot(aes(x = distpoul_cat, y = perc))+
+      geom_col()
 ```
 ```{r}
-genomics %>% 
-  filter(sample == "1101")
+names(tf_ps)
 ```
+```{r}
+tf_ps %>%
+      group_by(malaria) %>% 
+      filter(malaria == "Y") %>% 
+      summarize(average_variable = mean(distwater)) %>% 
+      select(average_variable) %>% 
+      .[[1]]
+```
+
 
 
 

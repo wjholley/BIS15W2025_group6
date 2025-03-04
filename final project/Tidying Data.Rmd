@@ -131,7 +131,11 @@ genomics_tf_ps <- genomics_tf_ps %>%
 
 ```{r}
 genomics_tf_ps %>% 
-  select(sample, distwater_cat, distfarm_cat, disturb_cat, distpoul_cat)
+  select(sample, distwater_cat, malaria) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = distwater_cat, y = malaria))+
+  geom_col()+
+  coord_flip()
 ```
 
 ## we can change the category names at some point but those were the best I could come up with in the moment
